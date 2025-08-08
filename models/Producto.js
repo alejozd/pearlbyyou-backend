@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       imagen_url: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(500),
         allowNull: false,
         validate: {
           isUrl: true,
@@ -27,6 +27,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       tableName: "productos",
+      timestamps: true,
+      createdAt: "creado_en",
+      updatedAt: "actualizado_en",
     }
   );
 
