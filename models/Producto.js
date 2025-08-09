@@ -2,6 +2,11 @@ module.exports = (sequelize, DataTypes) => {
   const Producto = sequelize.define(
     "Producto",
     {
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
       nombre: {
         type: DataTypes.STRING(100),
         allowNull: false,
@@ -13,16 +18,19 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
       },
-      imagen_url: {
-        type: DataTypes.STRING(500),
-        allowNull: false,
-        validate: {
-          isUrl: true,
-        },
-      },
       disponible: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
+      },
+      creado_en: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      actualizado_en: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
     },
     {
@@ -32,6 +40,14 @@ module.exports = (sequelize, DataTypes) => {
       updatedAt: "actualizado_en",
     }
   );
+
+  // Asociación con el modelo ImagenProducto
+  Producto.associate = (models) => {
+    Producto.hasMany(models.ImagenProducto, {
+      foreignKey: "producto_id",
+      as: "imagenes",
+    });
+  };
 
   return Producto;
 };

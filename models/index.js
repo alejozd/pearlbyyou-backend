@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const sequelize = require("../config/database");
 const basename = path.basename(__filename);
-
 const db = {};
 
 // Cargar modelos
@@ -19,6 +18,13 @@ fs.readdirSync(__dirname)
     );
     db[model.name] = model;
   });
+
+// Establecer asociaciones
+Object.keys(db).forEach((modelName) => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
 
 // Sincronizar (solo en desarrollo)
 // sequelize.sync({ alter: true }); // ¡Cuidado en producción!
