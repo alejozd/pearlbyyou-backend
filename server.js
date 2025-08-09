@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const sequelize = require("./config/database");
 const productosRoutes = require("./routes/productos");
+const path = require("path");
 
 const PORT = process.env.PORT || 3003;
 const API_BASE = process.env.API_BASE || "/api/v1";
@@ -11,6 +12,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(`${API_BASE}/productos`, productosRoutes);
 
