@@ -13,11 +13,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve images from the 'uploads' folder. This should go first.
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(`${API_BASE}/productos`, productosRoutes);
 
-// Conexión a BD y levantar servidor
+// Serve static files from the 'build' folder. This should be the last route.
+app.use(express.static(path.join(__dirname, "frontend", "build")));
+
+// Connect to the DB and start the server
 async function startServer() {
   try {
     await sequelize.authenticate();
