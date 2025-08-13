@@ -9,7 +9,7 @@ const db = mysql.createConnection({
 });
 
 const email = "alejozd79@gmail.com";
-const password = "Pascal2025*"; // Esta es la contraseña en texto plano que queremos hashear
+const password = "el password"; // Esta es la contraseña en texto plano que queremos hashear
 const saltRounds = 10; // Nivel de seguridad del hash
 
 bcrypt.hash(password, saltRounds, (err, hash) => {
