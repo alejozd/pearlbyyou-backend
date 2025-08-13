@@ -14,6 +14,7 @@ module.exports = (sequelize, DataTypes) => {
           model: "productos",
           key: "id",
         },
+        field: "producto_id",
       },
       url: {
         type: DataTypes.STRING(500),

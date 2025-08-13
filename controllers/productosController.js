@@ -89,12 +89,10 @@ exports.createProducto = async (req, res) => {
     }));
     await ImagenProducto.bulkCreate(imagenesParaGuardar, { transaction: t });
     await t.commit();
-    res
-      .status(201)
-      .json({
-        message: "Producto creado con éxito",
-        productoId: nuevoProducto.id,
-      });
+    res.status(201).json({
+      message: "Producto creado con éxito",
+      productoId: nuevoProducto.id,
+    });
   } catch (error) {
     await t.rollback();
     console.error("Error al crear el producto:", error);
@@ -116,6 +114,8 @@ exports.updateProducto = async (req, res) => {
   const imagenes = req.files;
   const t = await Producto.sequelize.transaction();
 
+  console.log("Archivos recibidos para actualizar:", req.files);
+
   try {
     const [rowsUpdated] = await Producto.update(
       { nombre, descripcion, precio },
@@ -128,24 +128,38 @@ exports.updateProducto = async (req, res) => {
     }
 
     if (imagenes && imagenes.length > 0) {
-      // Eliminar las imágenes antiguas del sistema de archivos y la base de datos
       const imagenesAntiguas = await ImagenProducto.findAll({
-        where: { productoId: id },
-        transaction: t,
-      });
-      for (const imagen of imagenesAntiguas) {
-        await fs.unlink(path.join(__dirname, "../", imagen.url));
-      }
-      await ImagenProducto.destroy({
-        where: { productoId: id },
+        where: { producto_id: id },
         transaction: t,
       });
 
-      const nuevasImagenes = imagenes.map((file, index) => ({
-        productoId: id,
-        url: path.join("uploads", file.filename),
-        orden: index + 1,
-      }));
+      for (const imagen of imagenesAntiguas) {
+        const imagePath = path.join(__dirname, "../", imagen.url);
+        if (
+          await fs
+            .access(imagePath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          await fs.unlink(imagePath);
+        }
+      }
+
+      await ImagenProducto.destroy({
+        where: { producto_id: id },
+        transaction: t,
+      });
+
+      // ✅ AQUI está la clave: pasamos el 'id' del producto en la creación de nuevas imagenes
+      const nuevasImagenes = imagenes.map((file, index) => {
+        const imageUrl = `/uploads/bolsos/${file.filename}`;
+        return {
+          producto_id: id,
+          url: imageUrl,
+          orden: index + 1,
+        };
+      });
+
       await ImagenProducto.bulkCreate(nuevasImagenes, { transaction: t });
     }
 
@@ -156,7 +170,7 @@ exports.updateProducto = async (req, res) => {
     console.error("Error al actualizar el producto:", error);
     if (imagenes && imagenes.length > 0) {
       for (const file of imagenes) {
-        await fs.unlink(path.join(__dirname, "../uploads/", file.filename));
+        await fs.unlink(file.path);
       }
     }
     res
