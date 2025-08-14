@@ -8,6 +8,7 @@ const path = require("path");
 const authRoutes = require("./routes/authRoutes");
 // Usa solo la importación de tus rutas de productos existentes
 const productosRoutes = require("./routes/productos");
+const adminManagementRoutes = require("./routes/adminManagementRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -22,6 +23,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Usar las rutas de autenticación con un prefijo
 app.use(`${API_BASE}/auth`, authRoutes);
+
+app.use("/api/admin-management", adminManagementRoutes);
 
 // Usar tus rutas de productos existentes
 app.use(`${API_BASE}/productos`, productosRoutes);

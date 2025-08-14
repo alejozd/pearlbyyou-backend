@@ -1,10 +1,11 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const Admin = require("../models/Admin");
 
 // TODO: CAMBIAR ESTA CLAVE SECRETA. DEBE SER LA MISMA QUE EN authRoutes.js
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   // Obtener el token del encabezado de la petición
   const authHeader = req.headers.authorization;
 
@@ -24,7 +25,15 @@ const authMiddleware = (req, res, next) => {
   try {
     // Verificar el token y decodificar el payload
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.admin = decoded; // Agregar la información del admin a la petición
+    // ✅ BUSCAR al administrador en la base de datos usando el ID del token
+    const admin = await Admin.findById(decoded.id).select("-password"); // O Admin.findByPk(decoded.id) si usas Sequelize/Sequelize.
+
+    if (!admin) {
+      return res.status(401).json({ message: "Administrador no encontrado." });
+    }
+
+    // ✅ Reemplazar req.admin con el objeto completo del administrador (incluye el rol)
+    req.admin = admin;
     next(); // Continuar con la siguiente función (la ruta protegida)
   } catch (err) {
     console.error("Error al verificar el token:", err);
