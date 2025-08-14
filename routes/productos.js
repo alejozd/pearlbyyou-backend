@@ -29,8 +29,7 @@ router.post(
   authMiddleware,
   upload.array("imagenes", 5),
   (req, res, next) => {
-    // ✅ Agrega un middleware para el console.log
-    console.log(`Petición POST a /productos/imagenes/${req.params.id}`);
+    // console.log(`Petición POST a /productos/imagenes/${req.params.id}`);
     next();
   },
   addImagesToProducto
