@@ -24,7 +24,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Usar las rutas de autenticación con un prefijo
 app.use(`${API_BASE}/auth`, authRoutes);
 
-app.use("/api/admin-management", adminManagementRoutes);
+app.use(`${API_BASE}/admin-management`, adminManagementRoutes);
 
 // Usar tus rutas de productos existentes
 app.use(`${API_BASE}/productos`, productosRoutes);
