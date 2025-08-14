@@ -82,4 +82,49 @@ router.post(
   }
 );
 
+// @desc    Activar/Desactivar un administrador
+// @route   PATCH /api/v1/admin-management/:id/status
+// @access  Private (Solo para Super Admin)
+router.patch(
+  "/:id/status",
+  authMiddleware,
+  roleMiddleware("super_admin"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { is_active } = req.body;
+
+      const admin = await Admin.findByPk(id);
+
+      if (!admin) {
+        return res
+          .status(404)
+          .json({ message: "Administrador no encontrado." });
+      }
+
+      // No permitir que un super_admin se desactive a sí mismo
+      if (req.admin.id === parseInt(id, 10) && !is_active) {
+        return res
+          .status(403)
+          .json({ message: "No puedes desactivar tu propia cuenta." });
+      }
+
+      await admin.update({ is_active });
+
+      res
+        .status(200)
+        .json({
+          message: `Administrador ${
+            is_active ? "activado" : "desactivado"
+          } con éxito.`,
+        });
+    } catch (error) {
+      console.error("Error al cambiar el estado del administrador:", error);
+      res
+        .status(500)
+        .json({ message: "Error al cambiar el estado del administrador." });
+    }
+  }
+);
+
 module.exports = router;
