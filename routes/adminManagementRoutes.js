@@ -1,9 +1,33 @@
 const express = require("express");
 const router = express.Router();
-const Admin = require("../models/Admin");
+const db = require("../models"); // ✅ Importa el objeto 'db'
+const Admin = db.Admin; // ✅ Obtén el modelo Admin desde 'db'
 const bcrypt = require("bcryptjs");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+
+// @desc    Obtener todos los administradores (excluyendo la contraseña)
+// @route   GET /api/admin-management/
+// @access  Private (Solo para Super Admin)
+router.get(
+  "/",
+  authMiddleware,
+  roleMiddleware("super_admin"),
+  async (req, res) => {
+    try {
+      // ✅ Usa 'findAll' de Sequelize con 'attributes' para excluir el campo
+      const admins = await Admin.findAll({
+        attributes: { exclude: ["password_hash"] },
+      });
+      res.status(200).json(admins);
+    } catch (error) {
+      console.error("Error al obtener administradores:", error);
+      res
+        .status(500)
+        .json({ message: "Error al obtener los administradores." });
+    }
+  }
+);
 
 // @desc    Crear un nuevo administrador
 // @route   POST /api/admin-management/
@@ -22,7 +46,8 @@ router.post(
     }
 
     try {
-      const adminExists = await Admin.findOne({ email });
+      // ✅ Usa 'findOne' de Sequelize para buscar
+      const adminExists = await Admin.findOne({ where: { email: email } });
 
       if (adminExists) {
         return res
@@ -31,12 +56,13 @@ router.post(
       }
 
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
+      const password_hash = await bcrypt.hash(password, salt); // ✅ Almacena en password_hash
 
+      // ✅ Usa 'create' de Sequelize con el campo correcto
       const newAdmin = await Admin.create({
         email,
-        password: hashedPassword,
-        role: "admin", // ✅ El rol por defecto para los nuevos administradores es 'admin'
+        password_hash,
+        role: "admin",
       });
 
       if (newAdmin) {
@@ -50,31 +76,10 @@ router.post(
         res.status(400).json({ message: "Datos de administrador inválidos." });
       }
     } catch (error) {
+      console.error("Error al crear el administrador:", error);
       res.status(500).json({ message: "Error al crear el administrador." });
     }
   }
 );
-
-// @desc    Obtener todos los administradores (excluyendo la contraseña)
-// @route   GET /api/admin-management/
-// @access  Private (Solo para Super Admin)
-router.get(
-  "/",
-  authMiddleware,
-  roleMiddleware("super_admin"),
-  async (req, res) => {
-    try {
-      const admins = await Admin.find().select("-password");
-      res.status(200).json(admins);
-    } catch (error) {
-      res
-        .status(500)
-        .json({ message: "Error al obtener los administradores." });
-    }
-  }
-);
-
-// ✅ Agrega más rutas aquí, como para eliminar un administrador
-// router.delete('/:id', authMiddleware, roleMiddleware('super_admin'), ...);
 
 module.exports = router;
