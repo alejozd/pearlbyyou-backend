@@ -6,24 +6,29 @@ const path = require("path");
 
 // Importa las rutas de autenticación
 const authRoutes = require("./routes/authRoutes");
-// Usa solo la importación de tus rutas de productos existentes
+console.log("✔️ authRoutes.js cargado correctamente."); // ✅ Log de depuración
+
+// Importa las rutas de productos
 const productosRoutes = require("./routes/productos");
+console.log("✔️ productosRoutes.js cargado correctamente."); // ✅ Log de depuración
+
+// Importa las rutas de administración de usuarios
 const adminManagementRoutes = require("./routes/adminManagementRoutes");
+console.log("✔️ adminManagementRoutes.js cargado correctamente."); // ✅ Log de depuración
 
 const app = express();
 const PORT = process.env.PORT || 3003;
 const API_BASE = process.env.API_BASE || "/api/v1";
 
 app.use(cors());
-// express.json() reemplaza a body-parser.json()
 app.use(express.json());
 
-// Serve images from the 'uploads' folder.
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Usar las rutas de autenticación con un prefijo
 app.use(`${API_BASE}/auth`, authRoutes);
 
+// Usar las rutas de administración de usuarios
 app.use(`${API_BASE}/admin-management`, adminManagementRoutes);
 
 // Usar tus rutas de productos existentes
@@ -32,7 +37,6 @@ app.use(`${API_BASE}/productos`, productosRoutes);
 // Serve static files from the 'build' folder. Esta debe ser la última ruta.
 app.use(express.static(path.join(__dirname, "frontend", "build")));
 
-// Conectar a la DB e iniciar el servidor
 async function startServer() {
   try {
     await sequelize.authenticate();
