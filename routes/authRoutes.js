@@ -28,32 +28,39 @@ router.post("/login", async (req, res) => {
   try {
     const connection = await mysql.createConnection(dbConfig);
 
-    // ✅ Añade 'is_active' a la consulta
     const [rows] = await connection.execute(
       "SELECT id, email, password_hash, role, is_active FROM admins WHERE email = ?",
       [email]
     );
-    connection.end();
 
     if (rows.length === 0) {
       console.log("Credenciales incorrectas");
+      connection.end();
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
     const admin = rows[0];
 
-    // ✅ Validar si el usuario está inactivo
     if (!admin.is_active) {
+      connection.end();
       return res.status(403).json({ message: "La cuenta está inactiva" });
     }
 
     const isMatch = await bcrypt.compare(password, admin.password_hash);
 
     if (!isMatch) {
+      connection.end();
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
-    // El token ahora contiene el 'is_active', aunque no se necesita para la validación
+    // ✅ Nueva consulta para actualizar el campo last_login
+    await connection.execute(
+      "UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+      [admin.id]
+    );
+
+    connection.end();
+
     const token = jwt.sign(
       { id: admin.id, email: admin.email, role: admin.role },
       JWT_SECRET,
