@@ -16,6 +16,7 @@ const dbConfig = {
 
 // Endpoint de login
 router.post("/login", async (req, res) => {
+  console.log("¡Ruta de login en authRoutes.js ejecutada!");
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -27,18 +28,24 @@ router.post("/login", async (req, res) => {
   try {
     const connection = await mysql.createConnection(dbConfig);
 
-    // ✅ Se ha añadido 'role' a la consulta
+    // ✅ Añade 'is_active' a la consulta
     const [rows] = await connection.execute(
-      "SELECT id, email, password_hash, role FROM admins WHERE email = ?",
+      "SELECT id, email, password_hash, role, is_active FROM admins WHERE email = ?",
       [email]
     );
     connection.end();
 
     if (rows.length === 0) {
+      console.log("Credenciales incorrectas");
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
     const admin = rows[0];
+
+    // ✅ Validar si el usuario está inactivo
+    if (!admin.is_active) {
+      return res.status(403).json({ message: "La cuenta está inactiva" });
+    }
 
     const isMatch = await bcrypt.compare(password, admin.password_hash);
 
@@ -46,7 +53,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
-    // ✅ Ahora el 'role' está incluido en el payload del token
+    // El token ahora contiene el 'is_active', aunque no se necesita para la validación
     const token = jwt.sign(
       { id: admin.id, email: admin.email, role: admin.role },
       JWT_SECRET,
