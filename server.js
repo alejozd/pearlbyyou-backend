@@ -16,6 +16,9 @@ console.log("✔️ productosRoutes.js cargado correctamente."); // ✅ Log de d
 const adminManagementRoutes = require("./routes/adminManagementRoutes");
 console.log("✔️ adminManagementRoutes.js cargado correctamente."); // ✅ Log de depuración
 
+const settingsRoutes = require("./routes/settingsRoutes");
+console.log("✔️ settingsRoutes.js cargado correctamente."); // ✅ Log de depuración
+
 const app = express();
 const PORT = process.env.PORT || 3003;
 const API_BASE = process.env.API_BASE || "/api/v1";
@@ -33,6 +36,9 @@ app.use(`${API_BASE}/admin-management`, adminManagementRoutes);
 
 // Usar tus rutas de productos existentes
 app.use(`${API_BASE}/productos`, productosRoutes);
+
+// Usar tus rutas de configuraciones
+app.use(`${API_BASE}/settings`, settingsRoutes);
 
 // Serve static files from the 'build' folder. Esta debe ser la última ruta.
 app.use(express.static(path.join(__dirname, "frontend", "build")));
