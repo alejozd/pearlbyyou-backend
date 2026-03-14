@@ -1,27 +1,51 @@
 const { Producto, ImagenProducto } = require("../models");
-const sequelize = require("sequelize");
 const fs = require("fs/promises");
 const path = require("path");
+const NodeCache = require("node-cache");
+const myCache = new NodeCache({ stdTTL: 300 }); // Cache por 5 minutos
 
 // Obtener todos los productos activos (pública)
 exports.getProductos = async (req, res) => {
   try {
-    const productos = await Producto.findAll({
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const cacheKey = `productos_p${page}_l${limit}`;
+    const cachedData = myCache.get(cacheKey);
+
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
+    const { count, rows: productos } = await Producto.findAndCountAll({
       where: { disponible: true },
+      attributes: ["id", "nombre", "precio", "descripcion"],
       order: [["creado_en", "DESC"]],
       include: [
         {
           model: ImagenProducto,
           as: "imagenes",
           attributes: ["id", "url", "orden"],
-          order: [["orden", "ASC"]],
         },
       ],
+      limit,
+      offset,
+      distinct: true,
     });
-    res.json(productos);
+
+    const response = {
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      productos,
+    };
+
+    myCache.set(cacheKey, response);
+    res.json(response);
   } catch (error) {
     console.error("Error al obtener los productos:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Error al obtener productos" });
   }
 };
 
