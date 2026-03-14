@@ -2,7 +2,7 @@ const { Producto, ImagenProducto } = require("../models");
 const fs = require("fs/promises");
 const path = require("path");
 const NodeCache = require("node-cache");
-const myCache = new NodeCache({ stdTTL: 300 }); // Cache por 5 minutos
+const myCache = new NodeCache({ stdTTL: 300, useClones: false }); // Cache por 5 minutos, evitar clonación de objetos complejos
 
 // Obtener todos los productos activos (pública)
 exports.getProductos = async (req, res) => {
@@ -38,7 +38,7 @@ exports.getProductos = async (req, res) => {
       totalItems: count,
       totalPages: Math.ceil(count / limit),
       currentPage: page,
-      productos,
+      productos: productos.map((p) => p.get({ plain: true })),
     };
 
     myCache.set(cacheKey, response);
