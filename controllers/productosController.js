@@ -20,7 +20,7 @@ exports.getProductos = async (req, res) => {
 
     const { count, rows: productos } = await Producto.findAndCountAll({
       where: { disponible: true },
-      attributes: ["id", "nombre", "precio", "descripcion"],
+      attributes: ["id", "nombre", "precio", "descripcion", "creado_en"],
       order: [["creado_en", "DESC"]],
       include: [
         {
@@ -107,12 +107,13 @@ exports.createProducto = async (req, res) => {
       { transaction: t }
     );
     const imagenesParaGuardar = imagenes.map((file, index) => ({
-      productoId: nuevoProducto.id,
+      producto_id: nuevoProducto.id,
       url: `/uploads/bolsos/${file.filename}`,
       orden: index + 1,
     }));
     await ImagenProducto.bulkCreate(imagenesParaGuardar, { transaction: t });
     await t.commit();
+    myCache.flushAll(); // Limpiar caché
     res.status(201).json({
       message: "Producto creado con éxito",
       productoId: nuevoProducto.id,
@@ -151,6 +152,7 @@ exports.updateProducto = async (req, res) => {
     }
 
     await t.commit();
+    myCache.flushAll(); // Limpiar caché al actualizar
     res.json({ message: "Producto actualizado con éxito." });
   } catch (error) {
     await t.rollback();
@@ -166,6 +168,7 @@ exports.deactivateProducto = async (req, res) => {
   try {
     const { id } = req.params;
     await Producto.update({ disponible: false }, { where: { id } });
+    myCache.flushAll(); // Limpiar caché
     res.json({ message: "Producto desactivado con éxito." });
   } catch (error) {
     console.error("Error al desactivar el producto:", error);
