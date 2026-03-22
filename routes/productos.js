@@ -1,7 +1,16 @@
 const express = require("express");
 const router = express.Router();
+const { body, validationResult } = require("express-validator");
 const authMiddleware = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/uploadMiddleware");
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
 
 const {
   getProductos,
@@ -17,9 +26,29 @@ const {
 
 // Rutas protegidas que solo el admin puede usar
 router.get("/inactivos", authMiddleware, getInactiveProductos);
-router.post("/", authMiddleware, upload.array("imagenes", 5), createProducto);
+router.post(
+  "/",
+  authMiddleware,
+  upload.array("imagenes", 5),
+  [
+    body("nombre").trim().notEmpty().withMessage("El nombre es obligatorio"),
+    body("precio").isDecimal().withMessage("El precio debe ser un número"),
+  ],
+  validate,
+  createProducto
+);
 // router.put("/:id", authMiddleware, updateProducto);
-router.put("/:id", authMiddleware, upload.none(), updateProducto);
+router.put(
+  "/:id",
+  authMiddleware,
+  upload.none(),
+  [
+    body("nombre").optional().trim().notEmpty(),
+    body("precio").optional().isDecimal(),
+  ],
+  validate,
+  updateProducto
+);
 router.put("/:id/desactivar", authMiddleware, deactivateProducto);
 router.put("/:id/activar", authMiddleware, activateProducto);
 router.delete("/imagenes/:id", authMiddleware, deleteImage);
