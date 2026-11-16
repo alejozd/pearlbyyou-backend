@@ -45,7 +45,12 @@ app.use(limiter);
 
 app.use(express.json());
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const webpBajoDemanda = require("./utils/webp");
+app.use(
+  "/uploads",
+  webpBajoDemanda,
+  express.static(path.join(__dirname, "uploads"), { maxAge: "7d" })
+);
 
 // Usar las rutas de autenticación con un prefijo
 app.use(`${API_BASE}/auth`, authRoutes);
