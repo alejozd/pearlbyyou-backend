@@ -1,27 +1,51 @@
 const { Producto, ImagenProducto } = require("../models");
-const sequelize = require("sequelize");
 const fs = require("fs/promises");
 const path = require("path");
+const NodeCache = require("node-cache");
+const myCache = new NodeCache({ stdTTL: 300, useClones: false }); // Cache por 5 minutos, evitar clonación de objetos complejos
 
 // Obtener todos los productos activos (pública)
 exports.getProductos = async (req, res) => {
   try {
-    const productos = await Producto.findAll({
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const cacheKey = `productos_p${page}_l${limit}`;
+    const cachedData = myCache.get(cacheKey);
+
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
+    const { count, rows: productos } = await Producto.findAndCountAll({
       where: { disponible: true },
+      attributes: ["id", "nombre", "precio", "descripcion", "creado_en"],
       order: [["creado_en", "DESC"]],
       include: [
         {
           model: ImagenProducto,
           as: "imagenes",
           attributes: ["id", "url", "orden"],
-          order: [["orden", "ASC"]],
         },
       ],
+      limit,
+      offset,
+      distinct: true,
     });
-    res.json(productos);
+
+    const response = {
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      productos: productos.map((p) => p.get({ plain: true })),
+    };
+
+    myCache.set(cacheKey, response);
+    res.json(response);
   } catch (error) {
     console.error("Error al obtener los productos:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Error al obtener productos" });
   }
 };
 
@@ -83,12 +107,13 @@ exports.createProducto = async (req, res) => {
       { transaction: t }
     );
     const imagenesParaGuardar = imagenes.map((file, index) => ({
-      productoId: nuevoProducto.id,
+      producto_id: nuevoProducto.id,
       url: `/uploads/bolsos/${file.filename}`,
       orden: index + 1,
     }));
     await ImagenProducto.bulkCreate(imagenesParaGuardar, { transaction: t });
     await t.commit();
+    myCache.flushAll(); // Limpiar caché
     res.status(201).json({
       message: "Producto creado con éxito",
       productoId: nuevoProducto.id,
@@ -127,6 +152,7 @@ exports.updateProducto = async (req, res) => {
     }
 
     await t.commit();
+    myCache.flushAll(); // Limpiar caché al actualizar
     res.json({ message: "Producto actualizado con éxito." });
   } catch (error) {
     await t.rollback();
@@ -142,6 +168,7 @@ exports.deactivateProducto = async (req, res) => {
   try {
     const { id } = req.params;
     await Producto.update({ disponible: false }, { where: { id } });
+    myCache.flushAll(); // Limpiar caché
     res.json({ message: "Producto desactivado con éxito." });
   } catch (error) {
     console.error("Error al desactivar el producto:", error);

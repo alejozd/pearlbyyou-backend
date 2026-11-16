@@ -13,6 +13,12 @@ const sequelize = new Sequelize(
       timestamps: true, // createdAt, updatedAt
       underscored: true, // snake_case
     },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
   }
 );
 
