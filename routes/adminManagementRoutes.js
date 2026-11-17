@@ -82,6 +82,84 @@ router.post(
   }
 );
 
+// @desc    Actualizar un administrador (email y rol)
+// @route   PUT /api/v1/admin-management/:id
+// @access  Private (Solo para Super Admin)
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("super_admin"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      let { email, role } = req.body;
+
+      const admin = await Admin.findByPk(id);
+
+      if (!admin) {
+        return res
+          .status(404)
+          .json({ message: "Administrador no encontrado." });
+      }
+
+      const ROLES = ["admin", "super_admin"];
+
+      if (role && !ROLES.includes(role)) {
+        return res
+          .status(400)
+          .json({ message: "Rol inválido. Debe ser 'admin' o 'super_admin'." });
+      }
+
+      // Un super_admin no puede quitarse el rol a si mismo: se quedaria fuera
+      // de la gestion de usuarios y ajustes, sin forma de volver.
+      if (req.admin.id === admin.id && role && role !== "super_admin") {
+        return res.status(403).json({
+          message: "No puedes quitarte el rol de super administrador.",
+        });
+      }
+
+      if (email) {
+        email = String(email).trim().toLowerCase();
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return res
+            .status(400)
+            .json({ message: "El correo no tiene un formato válido." });
+        }
+
+        if (email !== admin.email) {
+          const enUso = await Admin.findOne({ where: { email } });
+
+          if (enUso) {
+            return res.status(400).json({
+              message: "Ese correo ya está registrado en otro administrador.",
+            });
+          }
+
+          admin.email = email;
+        }
+      }
+
+      if (role) admin.role = role;
+
+      await admin.save();
+
+      res.status(200).json({
+        id: admin.id,
+        email: admin.email,
+        role: admin.role,
+        is_active: admin.is_active,
+        message: "Administrador actualizado con éxito.",
+      });
+    } catch (error) {
+      console.error("Error al actualizar el administrador:", error);
+      res
+        .status(500)
+        .json({ message: "Error al actualizar el administrador." });
+    }
+  }
+);
+
 // @desc    Activar/Desactivar un administrador
 // @route   PATCH /api/v1/admin-management/:id/status
 // @access  Private (Solo para Super Admin)
