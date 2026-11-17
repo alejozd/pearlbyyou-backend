@@ -22,6 +22,15 @@ const authMiddleware = async (req, res, next) => {
         return res.status(401).json({ message: "Usuario no encontrado" });
       }
 
+      // Una cuenta desactivada no debe seguir usando un token ya emitido: sin
+      // esto conservaba el acceso hasta que el JWT caducara (1 h). Se responde
+      // 401 para que el panel cierre sesion y vuelva al login.
+      if (!req.admin.is_active) {
+        return res
+          .status(401)
+          .json({ message: "La cuenta está desactivada. Vuelve a iniciar sesión." });
+      }
+
       next();
     } catch (error) {
       console.error("Error al verificar el token:", error);
